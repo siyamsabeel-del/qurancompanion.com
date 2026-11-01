@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quran Companion</title>
+<style>
+:root{--bg:#081b17;--card:#102b24;--gold:#e5c678;--text:#f8f5e9;--muted:#c0cec7;--line:#31594c}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#194435,#081b17 65%);color:var(--text);font:16px/1.65 system-ui,sans-serif}
+header{text-align:center;padding:28px 16px;border-bottom:1px solid var(--line)}header small{letter-spacing:3px;color:var(--gold)}header h1{font: bold clamp(30px,5vw,44px) Georgia,serif;margin:8px 0}header p,.muted{color:var(--muted)}
+main{max-width:1050px;margin:auto;padding:18px 14px 40px}.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:12px}
+input,select,button{font:inherit;padding:11px 12px;border-radius:11px;border:1px solid var(--line);background:#0c241e;color:var(--text);min-width:0}button{cursor:pointer}button:hover{border-color:var(--gold)}button.primary{background:var(--gold);color:#13251d;font-weight:700}
+.notice{padding:12px 14px;border:1px solid #887642;background:#2b291b;border-radius:12px;color:#f4e8bf;font-size:13px;margin:14px 0}
+.surahhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:18px;background:linear-gradient(130deg,#194435,#102b24);border:1px solid var(--line);border-radius:16px;margin:16px 0}
+.surahhead h2{margin:0;font: bold 27px Georgia,serif}.arabicname{font-size:28px;direction:rtl;color:var(--gold)}
+.ayah{padding:17px;margin:12px 0;background:#102b24;border:1px solid var(--line);border-radius:15px}.num{color:var(--gold);font-size:13px}
+.arabic{font-family:"Noto Naskh Arabic","Traditional Arabic",serif;direction:rtl;text-align:right;line-height:2;margin:10px 0 16px;color:#fff5d8}
+.label{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-top:8px}.translit{color:#d0ded5;font-style:italic;margin:2px 0}.translation{margin:2px 0}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{font-size:13px;padding:7px 10px}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+</style></head><body>
+<header><small>READ · UNDERSTAND · REFLECT</small><div style="font-size:35px;color:#e5c678">☾</div><h1>Quran Companion</h1><p>Arabic · English meaning · Transliteration · Voice</p></header>
+<main>
+<div class="notice">Translations and transliterations are learning aids and cannot fully capture every meaning or pronunciation rule. For accurate recitation, learn from a qualified teacher or reciter.</div>
+<div class="controls"><select id="surah"><option>Loading surahs…</option></select><input id="search" placeholder="Search English meaning…" aria-label="Search"><button id="voice" class="primary">🔊 Voice: ON</button><button id="stop">⏹ Stop voice/audio</button></div>
+<div class="controls"><select id="voiceLang"><option value="en">English spoken voice</option><option value="ar">Arabic spoken voice</option></select><button id="recite">▶ Quran recitation: OFF</button><button id="smaller">A− Smaller text</button><button id="larger">A+ Larger text</button></div>
+<div id="status" class="muted">Connecting to Quran data…</div><section id="heading"></section><section id="verses"></section>
+</main><footer>Requires an internet connection. Quran text, translations and transliteration load from AlQuran Cloud API; audio recitation uses a separate audio service.</footer>
+<script>
+const API='https://api.alquran.cloud/v1', $=x=>document.getElementById(x);let surahs=[],verses=[],voiceOn=true,reciteOn=false,audio=null,fontSize=34;
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function data(url){let r=await fetch(url);if(!r.ok)throw Error('Network request failed');let j=await r.json();if(j.code!==200)throw Error(j.status);return j.data}
+function stop(){if(audio){audio.pause();audio.currentTime=0;audio=null}if(window.speechSynthesis)window.speechSynthesis.cancel()}
+async function load(n){stop();$('heading').innerHTML='';$('verses').innerHTML='';$('status').textContent='Loading surah…';try{
+let d=await data(`${API}/surah/${n}/editions/quran-uthmani,en.sahih,en.transliteration`),a=d[0],t=d[1],p=d[2],info=surahs[Number(n)-1];
+verses=a.ayahs.map((x,i)=>({global:x.number,num:x.numberInSurah,ar:x.text,en:t.ayahs[i]?.text||'',tr:p.ayahs[i]?.text||''}));
+$('heading').innerHTML=`<div class="surahhead"><div><h2>${esc(info.englishName)} <span class="muted">(${esc(info.englishNameTranslation)})</span></h2><div class="muted">Surah ${n} · ${a.ayahs.length} verses · ${esc(info.revelationType)}</div></div><div class="arabicname">${esc(info.name)}</div></div>`;
+render();$('status').textContent=`Loaded ${info.englishName} · ${verses.length} verses.`}catch(e){$('status').textContent='Could not load Quran data. Check your internet connection and refresh.';$('verses').innerHTML='<div class="notice">This single-file site downloads the full text online so it can include all 114 surahs without a huge HTML file. Some school or browser networks may block the data service.</div>'}}
+function render(){let q=$('search').value.toLowerCase().trim(),v=verses.filter(x=>!q||x.en.toLowerCase().includes(q)||x.tr.toLowerCase().includes(q)||x.ar.includes(q));$('verses').innerHTML=v.map(x=>`<article class="ayah"><div class="num">Verse ${x.num} · ۞</div><div class="arabic" style="font-size:${fontSize}px">${esc(x.ar)}</div><div class="label">Pronunciation · Transliteration</div><p class="translit">${esc(x.tr)}</p><div class="label">English translation (meaning)</div><p class="translation">${esc(x.en)}</p><div class="actions"><button onclick="speakVerse(${x.num},'en')">🔊 Read English</button><button onclick="speakVerse(${x.num},'ar')">🗣 Read Arabic</button><button onclick="play(${x.global})">▶ Listen to recitation</button></div></article>`).join('')||'<div class="notice">No matching verses found.</div>'}
+function speak(text,lang){if(!voiceOn){$('status').textContent='Voice is OFF. Turn it ON to speak.';return}if(!('speechSynthesis'in window)){ $('status').textContent='Browser speech voice is unavailable on this device.';return}stop();let u=new SpeechSynthesisUtterance(text);u.lang=lang==='ar'?'ar-SA':'en-US';u.rate=.85;speechSynthesis.speak(u)}
+function speakVerse(n,lang){let x=verses.find(v=>v.num===n);if(x)speak(lang==='ar'?x.ar:x.en,lang)}
+function play(n){if(!reciteOn){$('status').textContent='Turn Quran recitation ON first.';return}stop();audio=new Audio(`https://cdn.islamic.network/quran/audio/128/ar.alafasy/${n}.mp3`);audio.play().catch(()=>$('status').textContent='Audio could not play. Check internet and browser audio settings.')}
+$('surah').onchange=e=>load(e.target.value);$('search').oninput=render;
+$('voice').onclick=()=>{voiceOn=!voiceOn;$('voice').textContent=voiceOn?'🔊 Voice: ON':'🔇 Voice: OFF';if(!voiceOn&&window.speechSynthesis)speechSynthesis.cancel();$('status').textContent=voiceOn?'Browser voice enabled.':'Browser voice disabled.'};
+$('stop').onclick=()=>{stop();$('status').textContent='Voice and audio stopped.'};
+$('recite').onclick=()=>{reciteOn=!reciteOn;$('recite').textContent=reciteOn?'⏸ Quran recitation: ON':'▶ Quran recitation: OFF';if(!reciteOn&&audio){audio.pause();audio=null}};
+$('smaller').onclick=()=>{fontSize=Math.max(22,fontSize-2);render()};$('larger').onclick=()=>{fontSize=Math.min(54,fontSize+2);render()};
+(async()=>{try{surahs=await data(`${API}/surah`);$('surah').innerHTML=surahs.map(s=>`<option value="${s.number}">${s.number}. ${esc(s.englishName)} — ${esc(s.name)}</option>`).join('');await load(1)}catch(e){$('status').textContent='Could not connect. Check your internet connection and refresh.';$('surah').innerHTML='<option>Connection failed</option>'}})();
+</script></body></html>
